@@ -37,6 +37,9 @@ namespace StoryEditor
         public static List<string> rules_query = new List<string>();
         public static List<string> rules_syscall = new List<string>();
         public static List<string> rules_sysquery = new List<string>();
+        // Lista ulubionych elementГіw
+        public static List<Objects> favoriteObjects = new List<Objects>();
+        private ContextMenuStrip mainListContextMenu = new ContextMenuStrip();
         private string stringFilter = "";
         public int selectedGoal = -1;
         public bool compile_trace = false;
@@ -48,7 +51,7 @@ namespace StoryEditor
         {
             InitializeComponent();
             pathToMainProgramFolder = AppDomain.CurrentDomain.BaseDirectory;
-            // Читаем rules
+            // пїЅпїЅпїЅпїЅпїЅпїЅ rules
             if (File.Exists("rules.000"))
             {
                 string[] lines = File.ReadLines("rules.000").ToArray();
@@ -87,7 +90,38 @@ namespace StoryEditor
                     }
                 }
             }
-            // Читаем конфиг
+            
+            // Inicjalizacja menu kontekstowego dla elementГіw w zakЕ‚adce MAIN
+            mainListContextMenu = new ContextMenuStrip();
+            ToolStripMenuItem addToFavoritesMenuItem = new ToolStripMenuItem("Dodaj do ulubionych");
+            addToFavoritesMenuItem.Click += AddToFavoritesMenuItem_Click;
+            mainListContextMenu.Items.Add(addToFavoritesMenuItem);
+            
+            // Inicjalizacja menu kontekstowego dla listy ulubionych
+            ContextMenuStrip favoritesContextMenu = new ContextMenuStrip();
+            ToolStripMenuItem removeFromFavoritesMenuItem = new ToolStripMenuItem("UsuЕ„ z ulubionych");
+            removeFromFavoritesMenuItem.Click += RemoveFromFavoritesMenuItem_Click;
+            favoritesContextMenu.Items.Add(removeFromFavoritesMenuItem);
+            
+            // Przypisanie menu kontekstowego do kontrolek ListBox
+            NPCListBox.ContextMenuStrip = mainListContextMenu;
+            OBJECTListBox.ContextMenuStrip = mainListContextMenu;
+            DIALOGListBox.ContextMenuStrip = mainListContextMenu;
+            REGIONListBox.ContextMenuStrip = mainListContextMenu;
+            LOCATIONListBox.ContextMenuStrip = mainListContextMenu;
+            NPC_CLASSListBox.ContextMenuStrip = mainListContextMenu;
+            OBJECT_CLASSListBox.ContextMenuStrip = mainListContextMenu;
+            DIALOG_EVENTListBox.ContextMenuStrip = mainListContextMenu;
+            ENGINEListBox.ContextMenuStrip = mainListContextMenu;
+            FUNCTIONListBox.ContextMenuStrip = mainListContextMenu;
+            SREGIONListBox.ContextMenuStrip = mainListContextMenu;
+            
+            FavoritesListBox.ContextMenuStrip = favoritesContextMenu;
+            
+            // Wczytywanie ulubionych przy starcie aplikacji
+            LoadFavorites();
+            
+            //  
             if (File.Exists("config.ini"))
             {
                 string[] lines = File.ReadLines("config.ini").ToArray();
@@ -169,7 +203,7 @@ namespace StoryEditor
             ConsoleRichTextBox.AppendText("Path to div.exe: " + pathToDivFile + "\n");
             ConsoleRichTextBox.AppendText("Path to story.000: " + pathToStoryBinFile + "\n");
             //---------------------------------------------------------------------------------------
-            // Добавляем элементы в контекстное меню для области KB
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ KB
             KBRichTextBox.ContextMenuStrip = KBContextMenuStrip;
             ToolStripMenuItem Call = new ToolStripMenuItem("Call");
             ToolStripMenuItem Event = new ToolStripMenuItem("Event");
@@ -592,7 +626,7 @@ namespace StoryEditor
             SaveStory(pathToStoryFile, compile_trace, debug_trace, objects, goals, storyVersion);
         }
         //---------------------------------------------------------------------------------------
-        private void BuildButton_Click(object sender, EventArgs e) // Сохраняем и компилируем бинарник
+        private void BuildButton_Click(object sender, EventArgs e) // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         {
             if (selectedGoal >= 0)
             {
@@ -619,7 +653,7 @@ namespace StoryEditor
                 }
                 if (ready)
                 {
-                    if (build_and_run_game) // Запускаем игру
+                    if (build_and_run_game) // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
                     {
                         Environment.CurrentDirectory = pathToMainProgramFolder;
                         ProcessStartInfo BuildStory = new()
@@ -892,6 +926,60 @@ namespace StoryEditor
             EXITRichTextBox.Text += buffer;
             ColoredWords();
         }
+        
+        // Metoda zapisujД…ca ulubione elementy do pliku
+        private void SaveFavorites()
+        {
+            try
+            {
+                string favoritesFile = "favorites.txt";
+                List<string> favLines = new List<string>();
+                
+                foreach (var favorite in favoriteObjects)
+                {
+                    favLines.Add(favorite.name + "|" + favorite.type + "|" + favorite.ID);
+                }
+                
+                File.WriteAllLines(favoritesFile, favLines);
+                ConsoleRichTextBox.AppendText("Ulubione zapisane\n");
+            }
+            catch (Exception ex)
+            {
+                ConsoleRichTextBox.AppendText("BЕ‚Д…d zapisywania ulubionych: " + ex.Message + "\n");
+            }
+        }
+        
+        // Metoda wczytujД…ca ulubione elementy z pliku
+        private void LoadFavorites()
+        {
+            string favoritesFile = "favorites.txt";
+            if (File.Exists(favoritesFile))
+            {
+                try
+                {
+                    string[] lines = File.ReadAllLines(favoritesFile);
+                    favoriteObjects.Clear();
+                    FavoritesListBox.Items.Clear();
+                    
+                    foreach (string line in lines)
+                    {
+                        string[] parts = line.Split('|');
+                        if (parts.Length == 3)
+                        {
+                            Objects obj = new Objects(parts[0], parts[1], parts[2]);
+                            favoriteObjects.Add(obj);
+                            FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                        }
+                    }
+                    ConsoleRichTextBox.AppendText("Ulubione wczytane\n");
+                }
+                catch (Exception ex)
+                {
+                    ConsoleRichTextBox.AppendText("BЕ‚Д…d wczytywania ulubionych: " + ex.Message + "\n");
+                }
+            }
+        }
+
         //---------------------------------------------------------------------------------------
         private void FilterComboBox_TextUpdate(object sender, EventArgs e)
         {
@@ -962,45 +1050,168 @@ namespace StoryEditor
             AR.ShowDialog();
             GoalTree();
         }
-    }
-    public class Goal
-    {
-        public List<int> parent = new List<int>();
-        public List<int> child = new List<int>();
-        public int ID;
-        public string NAME = "";
-        public List<string> INIT = new List<string>();
-        public List<string> KB = new List<string>();
-        public List<string> EXIT = new List<string>();
-        public Goal(int id, string name)
+
+        private void AddToFavoritesMenuItem_Click(object? sender, EventArgs e)
         {
-            ID = id;
-            NAME = name;
+            if (NPCListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = NPCListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "4", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (OBJECTListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = OBJECTListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "5", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (DIALOGListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = DIALOGListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "6", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (REGIONListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = REGIONListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "7", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (LOCATIONListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = LOCATIONListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "8", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (NPC_CLASSListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = NPC_CLASSListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "9", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (OBJECT_CLASSListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = OBJECT_CLASSListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "10", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (DIALOG_EVENTListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = DIALOG_EVENTListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "11", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (ENGINEListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = ENGINEListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "12", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (FUNCTIONListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = FUNCTIONListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "13", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
+            else if (SREGIONListBox.SelectedItem is not null)
+            {
+                string[] selectedItem = SREGIONListBox.SelectedItem.ToString().Split(' ');
+                int id = Int32.Parse(selectedItem[0]);
+                string name = selectedItem[1];
+                Objects obj = new Objects(name, "15", id.ToString());
+                if (!favoriteObjects.Any(f => f.ID == obj.ID && f.type == obj.type))
+                {
+                    favoriteObjects.Add(obj);
+                    FavoritesListBox.Items.Add(obj.ID.ToString().PadRight(6, ' ') + obj.name);
+                    SaveFavorites();
+                }
+            }
         }
-        public Goal(int id, string name, List<string> init, List<string> kb, List<string> exit)
+
+        private void RemoveFromFavoritesMenuItem_Click(object? sender, EventArgs e)
         {
-            ID = id;
-            NAME = name;
-            INIT = init;
-            KB = kb;
-            EXIT = exit;
-        }
-        public void ClearParentAndChild()
-        {
-            parent.Clear();
-            child.Clear();
-        }
-    }
-    public class Objects
-    {
-        public string name = "";
-        public int type;
-        public int ID;
-        public Objects(string name, string type, string ID)
-        {
-            this.name = name;
-            this.type = Int32.Parse(type);
-            this.ID = Int32.Parse(ID);
+            if (FavoritesListBox.SelectedItem is not null)
+            {
+                string selectedItem = FavoritesListBox.SelectedItem.ToString();
+                int id = Int32.Parse(selectedItem.Split(' ')[0]);
+                Objects objToRemove = favoriteObjects.FirstOrDefault(f => f.ID == id);
+                if (objToRemove != null)
+                {
+                    favoriteObjects.Remove(objToRemove);
+                    FavoritesListBox.Items.Remove(FavoritesListBox.SelectedItem);
+                    SaveFavorites();
+                }
+            }
         }
     }
 }
