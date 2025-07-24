@@ -37,6 +37,11 @@ namespace StoryEditor
         public static List<string> rules_query = new List<string>();
         public static List<string> rules_syscall = new List<string>();
         public static List<string> rules_sysquery = new List<string>();
+        // Lista ulubionych celÃ³w
+        public static List<Goal> favoriteGoals = new List<Goal>();
+        // Lista ID ulubionych celÃ³w (uÅ¼ywana do przechowywania ID nawet gdy lista goals jest pusta)
+        public static List<int> favoriteGoalIds = new List<int>();
+        private ContextMenuStrip treeViewContextMenu = new ContextMenuStrip();
         private string stringFilter = "";
         public int selectedGoal = -1;
         public bool compile_trace = false;
@@ -48,7 +53,7 @@ namespace StoryEditor
         {
             InitializeComponent();
             pathToMainProgramFolder = AppDomain.CurrentDomain.BaseDirectory;
-            // ×èòàåì rules
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ rules
             if (File.Exists("rules.000"))
             {
                 string[] lines = File.ReadLines("rules.000").ToArray();
@@ -87,7 +92,27 @@ namespace StoryEditor
                     }
                 }
             }
-            // ×èòàåì êîíôèã
+            
+            // Inicjalizacja menu kontekstowego dla GoalTreeView
+            treeViewContextMenu = new ContextMenuStrip();
+            ToolStripMenuItem addToFavoritesMenuItem = new ToolStripMenuItem("Dodaj do ulubionych");
+            addToFavoritesMenuItem.Click += AddToFavoritesMenuItem_Click;
+            treeViewContextMenu.Items.Add(addToFavoritesMenuItem);
+            
+            // Inicjalizacja menu kontekstowego dla listy ulubionych
+            ContextMenuStrip favoritesContextMenu = new ContextMenuStrip();
+            ToolStripMenuItem removeFromFavoritesMenuItem = new ToolStripMenuItem("UsuÅ„ z ulubionych");
+            removeFromFavoritesMenuItem.Click += RemoveFromFavoritesMenuItem_Click;
+            favoritesContextMenu.Items.Add(removeFromFavoritesMenuItem);
+            
+            // Przypisanie menu kontekstowego
+            GoalTreeView.ContextMenuStrip = treeViewContextMenu;
+            FavoritesListBox.ContextMenuStrip = favoritesContextMenu;
+            
+            // Wczytywanie ulubionych przy starcie aplikacji (tylko ID)
+            LoadFavorites();
+            
+            //  
             if (File.Exists("config.ini"))
             {
                 string[] lines = File.ReadLines("config.ini").ToArray();
@@ -169,7 +194,7 @@ namespace StoryEditor
             ConsoleRichTextBox.AppendText("Path to div.exe: " + pathToDivFile + "\n");
             ConsoleRichTextBox.AppendText("Path to story.000: " + pathToStoryBinFile + "\n");
             //---------------------------------------------------------------------------------------
-            // Äîáàâëÿåì ýëåìåíòû â êîíòåêñòíîå ìåíþ äëÿ îáëàñòè KB
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ KB
             KBRichTextBox.ContextMenuStrip = KBContextMenuStrip;
             ToolStripMenuItem Call = new ToolStripMenuItem("Call");
             ToolStripMenuItem Event = new ToolStripMenuItem("Event");
@@ -339,6 +364,9 @@ namespace StoryEditor
             selectedGoal = 0;
             ReadGoal(0);
             addRuleButton.Enabled = true;
+            
+            // OdÅ›wieÅ¼amy listÄ™ ulubionych po wczytaniu story
+            RefreshFavorites();
         }
         //---------------------------------------------------------------------------------------
         private void SaveStory(
@@ -592,7 +620,7 @@ namespace StoryEditor
             SaveStory(pathToStoryFile, compile_trace, debug_trace, objects, goals, storyVersion);
         }
         //---------------------------------------------------------------------------------------
-        private void BuildButton_Click(object sender, EventArgs e) // Ñîõðàíÿåì è êîìïèëèðóåì áèíàðíèê
+        private void BuildButton_Click(object sender, EventArgs e) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         {
             if (selectedGoal >= 0)
             {
@@ -619,7 +647,7 @@ namespace StoryEditor
                 }
                 if (ready)
                 {
-                    if (build_and_run_game) // Çàïóñêàåì èãðó
+                    if (build_and_run_game) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                     {
                         Environment.CurrentDirectory = pathToMainProgramFolder;
                         ProcessStartInfo BuildStory = new()
@@ -892,6 +920,113 @@ namespace StoryEditor
             EXITRichTextBox.Text += buffer;
             ColoredWords();
         }
+        
+        // Metoda zapisujÄ…ca ulubione elementy do pliku
+        private void SaveFavorites()
+        {
+            try
+            {
+                string favoritesFile = "favorites.txt";
+                List<string> favLines = new List<string>();
+                
+                foreach (var favoriteId in favoriteGoalIds)
+                {
+                    favLines.Add(favoriteId.ToString());
+                }
+                
+                File.WriteAllLines(favoritesFile, favLines);
+                ConsoleRichTextBox.AppendText("Ulubione zapisane\n");
+            }
+            catch (Exception ex)
+            {
+                ConsoleRichTextBox.AppendText("BÅ‚Ä…d zapisywania ulubionych: " + ex.Message + "\n");
+            }
+        }
+        
+        // Metoda wczytujÄ…ca ulubione elementy z pliku
+        private void LoadFavorites()
+        {
+            string favoritesFile = "favorites.txt";
+            if (File.Exists(favoritesFile))
+            {
+                try
+                {
+                    string[] lines = File.ReadAllLines(favoritesFile);
+                    favoriteGoalIds.Clear();
+                    
+                    foreach (string line in lines)
+                    {
+                        if (int.TryParse(line, out int goalId))
+                        {
+                            favoriteGoalIds.Add(goalId);
+                        }
+                    }
+                    ConsoleRichTextBox.AppendText("ID ulubionych wczytane\n");
+                }
+                catch (Exception ex)
+                {
+                    ConsoleRichTextBox.AppendText("BÅ‚Ä…d wczytywania ulubionych: " + ex.Message + "\n");
+                }
+            }
+        }
+        
+        // Metoda odÅ›wieÅ¼ajÄ…ca listÄ™ ulubionych na podstawie ID i aktualnej listy goals
+        private void RefreshFavorites()
+        {
+            favoriteGoals.Clear();
+            FavoritesListBox.Items.Clear();
+            
+            foreach (int favoriteId in favoriteGoalIds)
+            {
+                Goal goal = goals.FirstOrDefault(g => g.ID == favoriteId);
+                if (goal != null)
+                {
+                    favoriteGoals.Add(goal);
+                    FavoritesListBox.Items.Add(goal.ID + " " + goal.NAME);
+                }
+            }
+        }
+        
+        // Dodanie obsÅ‚ugi podwÃ³jnego klikniÄ™cia na element w liÅ›cie ulubionych
+        private void FavoritesListBox_DoubleClick(object sender, EventArgs e)
+        {
+            if (FavoritesListBox.SelectedItem != null)
+            {
+                string selectedItem = FavoritesListBox.SelectedItem.ToString();
+                int goalId = int.Parse(selectedItem.Split(' ')[0]);
+                
+                TreeNode foundNode = FindNodeByGoalId(GoalTreeView.Nodes, goalId);
+                if (foundNode != null)
+                {
+                    GoalTreeView.SelectedNode = foundNode;
+                    GoalTreeView.Focus();
+                    foundNode.EnsureVisible();
+                    
+                    // Odczytujemy goal, aby pokazaÄ‡ jego zawartoÅ›Ä‡
+                    selectedGoal = goalId - 1;
+                    ReadGoal(selectedGoal);
+                }
+            }
+        }
+        
+        private TreeNode FindNodeByGoalId(TreeNodeCollection nodes, int goalId)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                if (node.Tag != null && int.Parse(node.Tag.ToString()) == goalId)
+                {
+                    return node;
+                }
+                
+                TreeNode childNode = FindNodeByGoalId(node.Nodes, goalId);
+                if (childNode != null)
+                {
+                    return childNode;
+                }
+            }
+            
+            return null;
+        }
         //---------------------------------------------------------------------------------------
         private void FilterComboBox_TextUpdate(object sender, EventArgs e)
         {
@@ -962,45 +1097,41 @@ namespace StoryEditor
             AR.ShowDialog();
             GoalTree();
         }
-    }
-    public class Goal
-    {
-        public List<int> parent = new List<int>();
-        public List<int> child = new List<int>();
-        public int ID;
-        public string NAME = "";
-        public List<string> INIT = new List<string>();
-        public List<string> KB = new List<string>();
-        public List<string> EXIT = new List<string>();
-        public Goal(int id, string name)
+
+        private void AddToFavoritesMenuItem_Click(object? sender, EventArgs e)
         {
-            ID = id;
-            NAME = name;
+            if (GoalTreeView.SelectedNode != null)
+            {
+                int goalId = int.Parse(GoalTreeView.SelectedNode.Tag.ToString());
+                Goal goalToAdd = goals.FirstOrDefault(g => g.ID == goalId);
+                
+                if (goalToAdd != null && !favoriteGoalIds.Contains(goalId))
+                {
+                    favoriteGoalIds.Add(goalId);
+                    favoriteGoals.Add(goalToAdd);
+                    FavoritesListBox.Items.Add(goalToAdd.ID + " " + goalToAdd.NAME);
+                    SaveFavorites();
+                }
+            }
         }
-        public Goal(int id, string name, List<string> init, List<string> kb, List<string> exit)
+
+        private void RemoveFromFavoritesMenuItem_Click(object? sender, EventArgs e)
         {
-            ID = id;
-            NAME = name;
-            INIT = init;
-            KB = kb;
-            EXIT = exit;
-        }
-        public void ClearParentAndChild()
-        {
-            parent.Clear();
-            child.Clear();
-        }
-    }
-    public class Objects
-    {
-        public string name = "";
-        public int type;
-        public int ID;
-        public Objects(string name, string type, string ID)
-        {
-            this.name = name;
-            this.type = Int32.Parse(type);
-            this.ID = Int32.Parse(ID);
+            if (FavoritesListBox.SelectedItem != null)
+            {
+                string selectedItem = FavoritesListBox.SelectedItem.ToString();
+                int goalId = int.Parse(selectedItem.Split(' ')[0]);
+                
+                favoriteGoalIds.Remove(goalId);
+                Goal goalToRemove = favoriteGoals.FirstOrDefault(g => g.ID == goalId);
+                if (goalToRemove != null)
+                {
+                    favoriteGoals.Remove(goalToRemove);
+                }
+                
+                FavoritesListBox.Items.Remove(FavoritesListBox.SelectedItem);
+                SaveFavorites();
+            }
         }
     }
 }
