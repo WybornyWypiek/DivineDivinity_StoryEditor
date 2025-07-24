@@ -326,6 +326,7 @@ namespace StoryEditor
             FavoritesListBox.Name = "FavoritesListBox";
             FavoritesListBox.Size = new Size(496, 100);
             FavoritesListBox.TabIndex = 0;
+            FavoritesListBox.DoubleClick += FavoritesListBox_DoubleClick;
             // 
             // FavoritesLabel
             // 
