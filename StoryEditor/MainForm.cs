@@ -988,6 +988,12 @@ namespace StoryEditor
                 if (foundNode != null)
                 {
                     GoalTreeView.SelectedNode = foundNode;
+                    GoalTreeView.Focus();
+                    foundNode.EnsureVisible();
+                    
+                    // Odczytujemy goal, aby pokazać jego zawartość
+                    selectedGoal = goalId - 1;
+                    ReadGoal(selectedGoal);
                 }
             }
         }

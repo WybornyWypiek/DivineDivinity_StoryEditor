@@ -304,9 +304,9 @@ namespace StoryEditor
             // 
             // MAINSplitContainer.Panel1
             // 
+            MAINSplitContainer.Panel1.Controls.Add(GoalTreeView);
             MAINSplitContainer.Panel1.Controls.Add(FavoritesListBox);
             MAINSplitContainer.Panel1.Controls.Add(FavoritesLabel);
-            MAINSplitContainer.Panel1.Controls.Add(GoalTreeView);
             MAINSplitContainer.Panel1.Controls.Add(panel1);
             // 
             // MAINSplitContainer.Panel2
@@ -316,38 +316,34 @@ namespace StoryEditor
             MAINSplitContainer.SplitterDistance = 498;
             MAINSplitContainer.TabIndex = 1;
             // 
-            // FavoritesListBox
-            // 
-            FavoritesListBox.Font = new Font("Consolas", 10.2F);
-            FavoritesListBox.FormattingEnabled = true;
-            FavoritesListBox.ItemHeight = 17;
-            FavoritesListBox.Location = new Point(0, 30);
-            FavoritesListBox.Margin = new Padding(3, 2, 3, 2);
-            FavoritesListBox.Name = "FavoritesListBox";
-            FavoritesListBox.Size = new Size(496, 100);
-            FavoritesListBox.TabIndex = 0;
-            FavoritesListBox.DoubleClick += FavoritesListBox_DoubleClick;
-            // 
             // FavoritesLabel
             // 
             FavoritesLabel.AutoSize = true;
-            FavoritesLabel.Location = new Point(3, 10);
-            FavoritesLabel.Margin = new Padding(3, 0, 3, 0);
+            FavoritesLabel.Location = new Point(3, 30);
             FavoritesLabel.Name = "FavoritesLabel";
-            FavoritesLabel.Size = new Size(100, 15);
-            FavoritesLabel.TabIndex = 1;
+            FavoritesLabel.Size = new Size(80, 15);
+            FavoritesLabel.TabIndex = 3;
             FavoritesLabel.Text = "Favorites List";
+            // 
+            // FavoritesListBox
+            // 
+            FavoritesListBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            FavoritesListBox.Font = new Font("Consolas", 10.2F);
+            FavoritesListBox.FormattingEnabled = true;
+            FavoritesListBox.ItemHeight = 17;
+            FavoritesListBox.Location = new Point(0, 50);
+            FavoritesListBox.Name = "FavoritesListBox";
+            FavoritesListBox.Size = new Size(496, 85);
+            FavoritesListBox.TabIndex = 4;
+            FavoritesListBox.DoubleClick += FavoritesListBox_DoubleClick;
             // 
             // GoalTreeView
             // 
-            GoalTreeView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            GoalTreeView.Location = new Point(0, 140);
-            GoalTreeView.Margin = new Padding(3, 2, 3, 2);
+            GoalTreeView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            GoalTreeView.Location = new Point(0, 135);
             GoalTreeView.Name = "GoalTreeView";
-            GoalTreeView.Size = new Size(496, 506);
-            GoalTreeView.TabIndex = 2;
+            GoalTreeView.Size = new Size(496, 511);
+            GoalTreeView.TabIndex = 5;
             GoalTreeView.AfterSelect += GoalTreeView_AfterSelect;
             // 
             // panel1
@@ -356,7 +352,6 @@ namespace StoryEditor
             panel1.Controls.Add(FilterComboBox);
             panel1.Dock = DockStyle.Top;
             panel1.Location = new Point(0, 0);
-            panel1.Margin = new Padding(3, 2, 3, 2);
             panel1.Name = "panel1";
             panel1.Size = new Size(496, 23);
             panel1.TabIndex = 0;
