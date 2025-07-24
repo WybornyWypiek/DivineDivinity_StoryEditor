@@ -39,6 +39,8 @@ namespace StoryEditor
         public static List<string> rules_sysquery = new List<string>();
         // Lista ulubionych celów
         public static List<Goal> favoriteGoals = new List<Goal>();
+        // Lista ID ulubionych celów (używana do przechowywania ID nawet gdy lista goals jest pusta)
+        public static List<int> favoriteGoalIds = new List<int>();
         private ContextMenuStrip treeViewContextMenu = new ContextMenuStrip();
         private string stringFilter = "";
         public int selectedGoal = -1;
@@ -107,7 +109,7 @@ namespace StoryEditor
             GoalTreeView.ContextMenuStrip = treeViewContextMenu;
             FavoritesListBox.ContextMenuStrip = favoritesContextMenu;
             
-            // Wczytywanie ulubionych przy starcie aplikacji
+            // Wczytywanie ulubionych przy starcie aplikacji (tylko ID)
             LoadFavorites();
             
             //  
@@ -362,6 +364,9 @@ namespace StoryEditor
             selectedGoal = 0;
             ReadGoal(0);
             addRuleButton.Enabled = true;
+            
+            // Odświeżamy listę ulubionych po wczytaniu story
+            RefreshFavorites();
         }
         //---------------------------------------------------------------------------------------
         private void SaveStory(
@@ -924,9 +929,9 @@ namespace StoryEditor
                 string favoritesFile = "favorites.txt";
                 List<string> favLines = new List<string>();
                 
-                foreach (var favorite in favoriteGoals)
+                foreach (var favoriteId in favoriteGoalIds)
                 {
-                    favLines.Add(favorite.ID + "|" + favorite.NAME);
+                    favLines.Add(favoriteId.ToString());
                 }
                 
                 File.WriteAllLines(favoritesFile, favLines);
@@ -947,31 +952,37 @@ namespace StoryEditor
                 try
                 {
                     string[] lines = File.ReadAllLines(favoritesFile);
-                    favoriteGoals.Clear();
-                    FavoritesListBox.Items.Clear();
+                    favoriteGoalIds.Clear();
                     
                     foreach (string line in lines)
                     {
-                        string[] parts = line.Split('|');
-                        if (parts.Length == 2)
+                        if (int.TryParse(line, out int goalId))
                         {
-                            int goalId = int.Parse(parts[0]);
-                            string goalName = parts[1];
-                            
-                            // Szukamy celu w głównej liście celów
-                            Goal goal = goals.FirstOrDefault(g => g.ID == goalId);
-                            if (goal != null)
-                            {
-                                favoriteGoals.Add(goal);
-                                FavoritesListBox.Items.Add(goalId + " " + goalName);
-                            }
+                            favoriteGoalIds.Add(goalId);
                         }
                     }
-                    ConsoleRichTextBox.AppendText("Ulubione wczytane\n");
+                    ConsoleRichTextBox.AppendText("ID ulubionych wczytane\n");
                 }
                 catch (Exception ex)
                 {
                     ConsoleRichTextBox.AppendText("Błąd wczytywania ulubionych: " + ex.Message + "\n");
+                }
+            }
+        }
+        
+        // Metoda odświeżająca listę ulubionych na podstawie ID i aktualnej listy goals
+        private void RefreshFavorites()
+        {
+            favoriteGoals.Clear();
+            FavoritesListBox.Items.Clear();
+            
+            foreach (int favoriteId in favoriteGoalIds)
+            {
+                Goal goal = goals.FirstOrDefault(g => g.ID == favoriteId);
+                if (goal != null)
+                {
+                    favoriteGoals.Add(goal);
+                    FavoritesListBox.Items.Add(goal.ID + " " + goal.NAME);
                 }
             }
         }
@@ -1094,8 +1105,9 @@ namespace StoryEditor
                 int goalId = int.Parse(GoalTreeView.SelectedNode.Tag.ToString());
                 Goal goalToAdd = goals.FirstOrDefault(g => g.ID == goalId);
                 
-                if (goalToAdd != null && !favoriteGoals.Any(f => f.ID == goalToAdd.ID))
+                if (goalToAdd != null && !favoriteGoalIds.Contains(goalId))
                 {
+                    favoriteGoalIds.Add(goalId);
                     favoriteGoals.Add(goalToAdd);
                     FavoritesListBox.Items.Add(goalToAdd.ID + " " + goalToAdd.NAME);
                     SaveFavorites();
@@ -1110,13 +1122,15 @@ namespace StoryEditor
                 string selectedItem = FavoritesListBox.SelectedItem.ToString();
                 int goalId = int.Parse(selectedItem.Split(' ')[0]);
                 
+                favoriteGoalIds.Remove(goalId);
                 Goal goalToRemove = favoriteGoals.FirstOrDefault(g => g.ID == goalId);
                 if (goalToRemove != null)
                 {
                     favoriteGoals.Remove(goalToRemove);
-                    FavoritesListBox.Items.Remove(FavoritesListBox.SelectedItem);
-                    SaveFavorites();
                 }
+                
+                FavoritesListBox.Items.Remove(FavoritesListBox.SelectedItem);
+                SaveFavorites();
             }
         }
     }
